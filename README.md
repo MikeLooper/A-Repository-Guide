@@ -19,6 +19,7 @@ All repositories are owned by [MikeLooper](https://github.com/MikeLooper) on Git
 | [PilotSharedSource](https://github.com/MikeLooper/PilotSharedSource) | Shared source (the OpenAPI contract, plus reusable scripts/templates) consumed by the other Pilot repositories as a Git submodule, so the API contract and shared automation stay in one place instead of drifting across repos. |
 | [PilotUiAngular](https://github.com/MikeLooper/PilotUiAngular) | A production-style Angular single-page application that consumes the Pilot APIs through an OpenAPI-generated typed client, presenting the Northwind data in a browser UI. |
 | [PilotUtilityApi](https://github.com/MikeLooper/PilotUtilityApi) | A .NET Core REST API providing utility operations (such as resetting test data) that support the other Pilot APIs, with the same SQL Server / PostgreSQL switching pattern. |
+| [PythonAPIWithClaude](https://github.com/MikeLooper/PythonAPIWithClaude) | A proof of concept API to explore Claude interfacing (Python). |
 
 ## Repository Relationships
 
@@ -60,6 +61,7 @@ Docker  (Compose files, builder scripts)
   ├──deploys──> PilotApiPython
   ├──deploys──> PilotUiAngular
   └──deploys──> PilotUtilityApi
+  └──deploys──> PythonAPIWithClaude
 ```
 
 ### Combined
@@ -80,6 +82,7 @@ graph TB
         JAVA["PilotApiJava"]
         PYTHON["PilotApiPython"]
         UTIL["PilotUtilityApi"]
+        CLAUDE["PythonAPIWithClaude"]
     end
 
     %% 3. Client / Consumer Layer
@@ -95,7 +98,7 @@ graph TB
 
     %% Vertical Stacking Constraints (Forces high height, low width)
     PSS ~~~ DOTNET
-    DOTNET ~~~ JAVA ~~~ PYTHON ~~~ UTIL
+    DOTNET ~~~ JAVA ~~~ PYTHON ~~~ UTIL ~~~ CLAUDE
     UTIL ~~~ UI ~~~ MCP
     
     %% Force Layer 4 strictly to the bottom
@@ -123,6 +126,7 @@ graph TB
     DOCKER -- deploys --> PYTHON
     DOCKER -- deploys --> UI
     DOCKER -- deploys --> UTIL
+    DOCKER -- deploys --> CLAUDE
 
     %% Styling
     classDef contract fill:#f9f,stroke:#333,stroke-width:1px;
@@ -141,6 +145,7 @@ Notes:
 - **PilotSharedSource** is never deployed itself — it is pulled into `PilotApiDotNet`, `PilotApiJava`, `PilotApiPython`, `PilotUiAngular`, and `PilotMcpServer` as a Git submodule so they all build against the same OpenAPI contract.
 - **PilotUiAngular** and **PilotMcpServer** are both API *consumers*: the UI is a browser client for a person, the MCP server is a tool interface for an LLM agent. Both can call any of the three equivalent Pilot API deployments.
 - **PilotUtilityApi** is deployed the same way as the Pilot APIs but is not part of the shared-contract/consumer graph — it's a standalone support API (e.g. resetting test data) used alongside the others.
+- **PythonAPIWithClaude** is deployed the same way as the Pilot APIs but is not part of the related Pilot aplications — it's a standalone exploration API.
 - **Docker** is the only repository that deploys the others; none of the Pilot repositories deploy each other directly.
 
 ## Building a Full System
@@ -212,7 +217,7 @@ git clone https://github.com/MikeLooper/PilotUtilityApi.git
 From the `Docker` repository:
 
 ```
-Utility_dotnet\Docker-Utility-dornet-builder.bat
+Utility_dotnet\Docker-Utility-dotnet-builder.bat
 ```
 
 Verify: `http://localhost:55701/swagger` (SQL Server) or `http://localhost:55801/swagger` (PostgreSQL).
@@ -256,7 +261,21 @@ Point your MCP client at the built server, for example:
 
 It will discover and call whichever of the six Pilot API deployments (3 languages × 2 databases) you selected in the previous steps.
 
-### 8. (Optional) Bring up supporting services
+### 8. Clone and deploy `PythonAPIWithClaude`
+
+```
+git clone https://github.com/MikeLooper/PythonAPIWithClaude.git
+```
+
+From the `Docker` repository:
+
+```
+Api_python_with_claude\Docker-pythonapi-with-claude-builder.bat
+```
+
+Verify: `http://localhost:56601/docs`.
+
+### 9. (Optional) Bring up supporting services
 
 Also from the `Docker` repository, as needed:
 
@@ -266,7 +285,7 @@ Homepage\Docker-Homepage-builder.bat
 UptimeKuma\Docker-UptimeKuma-builder.bat
 ```
 
-### 9. Verify the full system
+### 10. Verify the full system
 
 | Component | URL |
 | --- | --- |
@@ -275,6 +294,7 @@ UptimeKuma\Docker-UptimeKuma-builder.bat
 | Pilot API — Java (SQL Server / PostgreSQL) | `http://localhost:55301/swagger-ui/index.html` / `http://localhost:55401/swagger-ui/index.html` |
 | Pilot API — Python (SQL Server / PostgreSQL) | `http://localhost:55501/docs` / `http://localhost:55601/docs` |
 | Utility API (SQL Server / PostgreSQL) | `http://localhost:55701/swagger` / `http://localhost:55801/swagger` |
+| PythonAPIWithClaude | `http://localhost:56601/docs` |
 | Dozzle (log viewer) | `http://localhost:56101` |
 | Homepage (dashboard) | `http://localhost:56201` |
 | Uptime Kuma | `http://localhost:3001` |
